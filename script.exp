@@ -1,0 +1,16 @@
+#!/usr/bin/expect -f
+set timeout 300
+
+spawn npx --yes @shopify/cli@latest app config link
+
+expect {
+    -re "o.r.g.a.n.i.z.a.t.i.o.n.*u.s.e" {
+        send "\r"
+        exp_continue
+    }
+    -re "e.x.i.s.t.i.n.g.*a.p.p" {
+        send "\r"
+        exp_continue
+    }
+    eof
+}

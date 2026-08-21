@@ -1,0 +1,148 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+model Session {
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model ReturnRequest {
+  id              String       @id @default(uuid())
+  shop            String
+  shopifyOrderId  String
+  orderNumber     String
+  requestType     String       @default("RETURN") // RETURN, EXCHANGE
+  customerEmail   String?
+  customerName    String?
+  shopifyCustomerId String?
+  reason          String
+  notes           String?
+  amountRequested Float?
+  shopifyRefundId String?
+  refundedAmount  Float?
+  status          String       @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  items           ReturnItem[]
+  exchangeItems   ExchangeItem[]
+}
+
+model ReturnItem {
+  id              String        @id @default(uuid())
+  returnRequestId String
+  shopifyProductId String
+  shopifyVariantId String
+  title           String
+  quantity        Int
+  
+  returnRequest   ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+}
+
+model ExchangeItem {
+  id                        String        @id @default(uuid())
+  returnRequestId           String
+  originalShopifyProductId  String
+  originalShopifyVariantId  String
+  originalProductTitle      String
+  originalVariantTitle      String
+  replacementShopifyProductId String
+  replacementShopifyVariantId String
+  replacementShopifyOrderId String?
+  replacementProductTitle   String
+  replacementVariantTitle   String
+  quantity                  Int
+  originalPrice             Float
+  replacementPrice          Float
+  priceDifference           Float
+  exchangeStatus            String        @default("PENDING")
+
+  returnRequest             ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+}
+
+model StoreSettings {
+  id                                String   @id @default(uuid())
+  shop                              String   @unique
+  
+  // Return Policies
+  returnWindowDays                  Int      @default(30)
+  returnsEnabled                    Boolean  @default(true)
+  exchangesEnabled                  Boolean  @default(true)
+  refundsEnabled                    Boolean  @default(true)
+  allowReturnsAfterFulfillmentOnly  Boolean  @default(true)
+  allowReturnsForPartiallyFulfilled Boolean  @default(true)
+  productEligibility                String   @default("ALL") // ALL, EXCLUDE_FINAL_SALE
+
+  // Return Shipping & Restocking
+  returnShippingType                String   @default("CUSTOMER_PAYS") // CUSTOMER_PAYS, MERCHANT_PAYS, FREE
+  restockingFeeType                 String   @default("NONE") // NONE, PERCENTAGE, FIXED
+  restockingFeeValue                Float    @default(0.0)
+
+  // Refund Rules
+  refundOriginalPayment             Boolean  @default(true)
+  refundShippingCost                Boolean  @default(false)
+  refundTaxes                       Boolean  @default(true)
+
+  // Exchange Settings
+  allowSameProductDifferentVariant  Boolean  @default(true)
+  allowDifferentProductExchange     Boolean  @default(false)
+  allowHigherPriceExchange          Boolean  @default(false)
+  allowLowerPriceExchange           Boolean  @default(true)
+  allowSamePriceExchange            Boolean  @default(true)
+
+  // Auto-approval Settings
+  autoApprovalEnabled               Boolean  @default(false)
+  autoApprovalMaxAmount             Float?
+
+  // App Behavior
+  requireReturnReason               Boolean  @default(true)
+  requireCustomerNotes              Boolean  @default(false)
+  requireReturnImages               Boolean  @default(false)
+  allowMultipleItems                Boolean  @default(true)
+
+  // Admin Notifications
+  notifyReturnRequest               Boolean  @default(true)
+  notifyExchangeRequest             Boolean  @default(true)
+  notifyApproved                    Boolean  @default(true)
+  notifyRejected                    Boolean  @default(true)
+  notifyRefundCompleted             Boolean  @default(true)
+
+  createdAt                         DateTime @default(now())
+  updatedAt                         DateTime @updatedAt
+}
+
+model ReturnReason {
+  id        String   @id @default(uuid())
+  shop      String
+  label     String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
